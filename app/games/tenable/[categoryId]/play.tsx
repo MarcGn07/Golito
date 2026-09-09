@@ -189,7 +189,7 @@ export function TenablePlay({
           </ul>
 
           <button
-            onClick={finish}
+            onClick={() => finish()}
             className="mt-8 text-sm text-muted-light dark:text-muted-dark hover:underline"
           >
             End round now
