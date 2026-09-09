@@ -4,7 +4,9 @@ import { Navbar } from "@/components/navbar";
 import { getGame, GAMES } from "@/lib/games";
 
 export function generateStaticParams() {
-  return GAMES.map((g) => ({ slug: g.slug }));
+  // "tenable" has its own dedicated route group now (app/games/tenable/),
+  // so this catch-all only needs to pre-render the remaining placeholders.
+  return GAMES.filter((g) => g.slug !== "tenable").map((g) => ({ slug: g.slug }));
 }
 
 export default function GamePage({ params }: { params: { slug: string } }) {

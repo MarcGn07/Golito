@@ -18,10 +18,15 @@ Supabase (Postgres, Auth, Row Level Security).
   **Football Tenable** has a complete working editor (create a
   category with 10 answers, publish/unpublish) — the other four games
   have placeholder pages ready to be built the same way.
+- **Football Tenable is fully playable end to end**:
+  `/games/tenable` lists published categories → `/games/tenable/[id]`
+  is the actual play screen (2-minute timer, free-text input,
+  server-side fuzzy matching so answers are never sent to the
+  browser, live "found" list, result saved to `game_results` for
+  logged-in players).
 
-The three games' actual play screens (the quiz boards themselves)
-aren't built yet — this is the foundation (auth, data, design system,
-admin) to build them on top of next.
+Hitster, Scaleboard, Price Tag and Squad Stats still need their play
+screens built — Tenable is now the reference pattern to copy.
 
 ## 1. Local setup
 
@@ -101,13 +106,24 @@ git push -u origin main
 - Dark mode toggles the `dark` class on `<html>`, persisted in
   `localStorage` under the `golito-theme` key
 
+## Try it out
+
+1. Log in as your admin account, go to `/admin/tenable`, and create a
+   category with a title (e.g. "Teammates of Thomas Müller") and a
+   few correct answers
+2. Click "Published" on that category in the list below the form
+3. Visit `/games/tenable`, pick the category, hit "Start round", and
+   play it for real
+
 ## Next steps
 
-- Build the actual play screens for each game (timer + free-text
-  input for Tenable, drag-to-timeline for Hitster, click-to-sort for
-  Scaleboard, slider for Price Tag, per-player slider for Squad
-  Stats), each posting a row into `game_results` on completion
+- Build the remaining play screens: drag-to-timeline for Hitster,
+  click-to-sort for Scaleboard, slider for Price Tag, per-player
+  slider for Squad Stats — each follows the same shape as Tenable
+  (a server component fetching metadata, a client component handling
+  the interaction, a server action that grades server-side and
+  writes to `game_results`)
 - Copy the Tenable admin pattern (`app/admin/tenable/`) for the other
   four games
-- Fuzzy-match player name input (aliases/typo tolerance) for Tenable
-  and Squad Stats
+- `lib/text-match.ts` (normalize + fuzzy match) is reusable for Squad
+  Stats' player-name input too
