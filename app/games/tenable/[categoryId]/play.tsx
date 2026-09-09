@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { checkGuess, finishTenableRound } from "./actions";
+import { checkGuess, finishTenableRound } from "../actions";
 
 const ROUND_SECONDS = 120;
 
