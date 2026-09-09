@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-paper text-ink font-body antialiased transition-colors duration-200;
+  }
+
+  html.dark body {
+    @apply bg-ink text-paper;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+
+  /* Visible keyboard focus, kept subtle but never removed */
+  :focus-visible {
+    outline: 2px solid theme("colors.lime.DEFAULT");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  .surface {
+    @apply bg-paper-2 dark:bg-ink-2 border border-paper-3 dark:border-ink-3;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-ink dark:bg-lime
+           text-paper dark:text-ink font-medium px-6 py-3
+           hover:bg-ink/90 dark:hover:bg-lime-dim
+           transition-colors duration-150;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full surface
+           text-ink dark:text-paper font-medium px-6 py-3
+           hover:border-ink/30 dark:hover:border-paper/30
+           transition-colors duration-150;
+  }
+
+  .input-field {
+    @apply w-full rounded-2xl surface px-4 py-3 text-ink dark:text-paper
+           placeholder:text-muted-light dark:placeholder:text-muted-dark
+           focus:border-ink/40 dark:focus:border-lime/60 outline-none
+           transition-colors duration-150;
+  }
+}
