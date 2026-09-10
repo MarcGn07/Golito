@@ -32,3 +32,10 @@ create policy "Authenticated users can search players"
 
 grant usage on schema public to authenticated;
 grant select on public.players to authenticated;
+
+-- The import script (scripts/import-players.ts) writes with the
+-- service_role key, which bypasses RLS but still needs the
+-- underlying table grants — same reason profiles/tenable_* needed
+-- 0002_grants.sql.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.players to service_role;
