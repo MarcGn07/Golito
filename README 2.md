@@ -20,21 +20,10 @@ Supabase (Postgres, Auth, Row Level Security).
   have placeholder pages ready to be built the same way.
 - **Football Tenable is fully playable end to end**:
   `/games/tenable` lists published categories → `/games/tenable/[id]`
-  is the play screen. Guesses only need the surname (or any
-  admin-defined alias), are matched server-side so the answer list
-  never reaches the browser, and land on a numbered 1–N board at
-  their real rank — with a national flag next to the name if the
-  admin set one. Missed answers are revealed on that same board once
-  the round ends. Finished rounds are saved to `game_results` for
-  logged-in players.
-- The Tenable admin editor supports full CRUD: create, edit (full
-  form, pre-filled), publish/unpublish, and delete — not just
-  publish/draft.
-- A flag picker (`lib/flags.ts`) covers FIFA member associations by
-  confederation, using the `flag-icons` library so every flag shares
-  a consistent aspect ratio (the odd few that are natively square —
-  Switzerland, Nepal, Vatican — render at their correct 1:1 shape via
-  `SQUARE_FLAG_CODES`).
+  is the actual play screen (2-minute timer, free-text input,
+  server-side fuzzy matching so answers are never sent to the
+  browser, live "found" list, result saved to `game_results` for
+  logged-in players).
 
 Hitster, Scaleboard, Price Tag and Squad Stats still need their play
 screens built — Tenable is now the reference pattern to copy.
@@ -104,9 +93,6 @@ git push -u origin main
    your `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-   Do **not** add `SUPABASE_SERVICE_ROLE_KEY` here — it's only ever
-   used by the local import script, never by the deployed app.
 3. Deploy — every future push to `main` redeploys automatically, and
    every pull request gets its own preview URL
 
@@ -128,60 +114,6 @@ git push -u origin main
 2. Click "Published" on that category in the list below the form
 3. Visit `/games/tenable`, pick the category, hit "Start round", and
    play it for real
-
-## Importing player data for the admin autocomplete
-
-The answer fields in `/admin/tenable` search a `players` table (name
-+ nationality flag) as you type. That table starts out empty — you
-fill it once (and can refresh it later) by running an import that
-downloads the open
-[transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets)
-player list and loads it into Supabase.
-
-**This runs entirely on GitHub's servers — no local install needed.**
-`.github/workflows/import-players.yml` does the whole thing: download
-the dataset, map each player's nationality to a flag, load it in.
-You only need to do this once (repeat any time you want a refresh):
-
-1. Run the new migration: paste `supabase/migrations/0004_players.sql`
-   into the Supabase SQL Editor and run it
-2. On GitHub.com, open your `golito` repository → **Settings** →
-   **Secrets and variables** → **Actions** → **New repository
-   secret**, and add two secrets:
-   - `SUPABASE_URL` → your Supabase project URL (same value as
-     `NEXT_PUBLIC_SUPABASE_URL`, e.g. `https://xxxx.supabase.co`)
-   - `SUPABASE_SERVICE_ROLE_KEY` → found in Supabase under Project
-     Settings → API → **service_role**. This key bypasses Row Level
-     Security — that's exactly why it lives only as a GitHub secret
-     (encrypted, never shown again after saving) and never in the
-     app itself or in Vercel
-3. Go to the **Actions** tab on GitHub → click **Import players** in
-   the left sidebar → click the **Run workflow** button → **Run
-   workflow** again to confirm
-4. Watch it run (takes a few minutes) — click into the run to see
-   progress logs, same as the ones described below
-
-It logs how many countries it couldn't map to a flag; if that number
-looks high, check `scripts/country-aliases.ts` for a naming mismatch
-and add an alias, then re-run the workflow.
-
-<details>
-<summary>Prefer running it locally instead?</summary>
-
-If your machine can run a recent Node.js, you can do the same thing
-locally: download `players.csv` from the dataset into `./data/`, add
-`SUPABASE_SERVICE_ROLE_KEY` to `.env.local`, then run
-`npm install && npm run import:players`. Not necessary if you're
-using the GitHub Actions workflow above — both do the same thing.
-
-</details>
-
-A note on the data source: `transfermarkt-datasets` itself is
-CC0-licensed by its maintainer, but the underlying data is scraped
-from Transfermarkt, whose own terms restrict scraping/reuse — a
-legal grey area shared by essentially every free Transfermarkt-based
-project. Fine for building and a soft launch; worth revisiting with
-a lawyer if Golito grows into something commercially significant.
 
 ## Next steps
 
