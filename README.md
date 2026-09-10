@@ -20,10 +20,21 @@ Supabase (Postgres, Auth, Row Level Security).
   have placeholder pages ready to be built the same way.
 - **Football Tenable is fully playable end to end**:
   `/games/tenable` lists published categories → `/games/tenable/[id]`
-  is the actual play screen (2-minute timer, free-text input,
-  server-side fuzzy matching so answers are never sent to the
-  browser, live "found" list, result saved to `game_results` for
-  logged-in players).
+  is the play screen. Guesses only need the surname (or any
+  admin-defined alias), are matched server-side so the answer list
+  never reaches the browser, and land on a numbered 1–N board at
+  their real rank — with a national flag next to the name if the
+  admin set one. Missed answers are revealed on that same board once
+  the round ends. Finished rounds are saved to `game_results` for
+  logged-in players.
+- The Tenable admin editor supports full CRUD: create, edit (full
+  form, pre-filled), publish/unpublish, and delete — not just
+  publish/draft.
+- A flag picker (`lib/flags.ts`) covers FIFA member associations by
+  confederation, using the `flag-icons` library so every flag shares
+  a consistent aspect ratio (the odd few that are natively square —
+  Switzerland, Nepal, Vatican — render at their correct 1:1 shape via
+  `SQUARE_FLAG_CODES`).
 
 Hitster, Scaleboard, Price Tag and Squad Stats still need their play
 screens built — Tenable is now the reference pattern to copy.

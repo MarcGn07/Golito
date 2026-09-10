@@ -2,17 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { checkGuess, finishTenableRound } from "../actions";
+import { checkGuess, finishTenableRound, revealAnswers } from "../actions";
+import { AnswerBoard, type BoardSlot } from "@/components/tenable/answer-board";
 
 const ROUND_SECONDS = 120;
 
 type Phase = "ready" | "playing" | "finished";
 type Feedback = { kind: "correct" | "wrong"; text: string } | null;
-
-interface FoundAnswer {
-  id: string;
-  answer: string;
-}
 
 export function TenablePlay({
   categoryId,
@@ -28,7 +24,10 @@ export function TenablePlay({
   const [phase, setPhase] = useState<Phase>("ready");
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [guess, setGuess] = useState("");
-  const [found, setFound] = useState<FoundAnswer[]>([]);
+  const [slots, setSlots] = useState<BoardSlot[]>(
+    Array.from({ length: totalAnswers }, () => ({ status: "empty" }))
+  );
+  const [foundCount, setFoundCount] = useState(0);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "not-logged-in">(
@@ -39,10 +38,6 @@ export function TenablePlay({
   const foundIdsRef = useRef<string[]>([]);
   const startedAtRef = useRef<number>(0);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    foundIdsRef.current = found.map((f) => f.id);
-  }, [found]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -63,7 +58,9 @@ export function TenablePlay({
   function start() {
     setPhase("playing");
     setTimeLeft(ROUND_SECONDS);
-    setFound([]);
+    setSlots(Array.from({ length: totalAnswers }, () => ({ status: "empty" })));
+    setFoundCount(0);
+    foundIdsRef.current = [];
     startedAtRef.current = Date.now();
     setTimeout(() => inputRef.current?.focus(), 50);
   }
@@ -71,6 +68,29 @@ export function TenablePlay({
   async function finish(finalScore?: number) {
     setPhase("finished");
     const elapsed = Math.round((Date.now() - startedAtRef.current) / 1000);
+
+    // Fill in whatever's still empty with the real answers, so the
+    // player sees what they missed.
+    const revealed = await revealAnswers(categoryId);
+    setSlots((prevSlots) => {
+      const next = [...prevSlots];
+      let fallbackIndex = 0;
+      for (const item of revealed) {
+        if (foundIdsRef.current.includes(item.id)) continue; // already shown as "found"
+        const targetIndex =
+          item.rank && item.rank >= 1 && item.rank <= next.length ? item.rank - 1 : -1;
+        const index =
+          targetIndex >= 0 && next[targetIndex].status === "empty"
+            ? targetIndex
+            : next.findIndex((s, i) => s.status === "empty" && i >= fallbackIndex);
+        if (index >= 0) {
+          next[index] = { status: "missed", answer: item.answer, flagCode: item.flagCode };
+          fallbackIndex = index + 1;
+        }
+      }
+      return next;
+    });
+
     setSaveStatus("saving");
     const result = await finishTenableRound(
       categoryId,
@@ -92,12 +112,33 @@ export function TenablePlay({
     inputRef.current?.focus();
 
     clearTimeout(feedbackTimeoutRef.current);
+
     if (result.matched && result.id && result.answer) {
-      const nextFound = [...found, { id: result.id, answer: result.answer }];
-      setFound(nextFound);
+      foundIdsRef.current = [...foundIdsRef.current, result.id];
+      const nextCount = foundIdsRef.current.length;
+      setFoundCount(nextCount);
       setFeedback({ kind: "correct", text: result.answer });
-      if (nextFound.length >= totalAnswers) {
-        finish(nextFound.length);
+
+      setSlots((prev) => {
+        const next = [...prev];
+        const rank = result.rank;
+        const targetIndex = rank && rank >= 1 && rank <= next.length ? rank - 1 : -1;
+        const index =
+          targetIndex >= 0 && next[targetIndex].status === "empty"
+            ? targetIndex
+            : next.findIndex((s) => s.status === "empty");
+        if (index >= 0) {
+          next[index] = {
+            status: "found",
+            answer: result.answer!,
+            flagCode: result.flagCode ?? null,
+          };
+        }
+        return next;
+      });
+
+      if (nextCount >= totalAnswers) {
+        finish(nextCount);
         return;
       }
     } else {
@@ -140,7 +181,7 @@ export function TenablePlay({
               {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
             </span>
             <span className="text-muted-light dark:text-muted-dark">
-              {found.length} / {totalAnswers} found
+              {foundCount} / {totalAnswers} found
             </span>
           </div>
 
@@ -156,7 +197,7 @@ export function TenablePlay({
               ref={inputRef}
               value={guess}
               onChange={(e) => setGuess(e.target.value)}
-              placeholder="Type an answer…"
+              placeholder="Type a surname…"
               autoComplete="off"
               className="input-field"
             />
@@ -177,16 +218,9 @@ export function TenablePlay({
             </p>
           )}
 
-          <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {found.map((f) => (
-              <li
-                key={f.id}
-                className="surface rounded-xl px-3 py-2 text-sm text-ink dark:text-paper"
-              >
-                {f.answer}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-6">
+            <AnswerBoard slots={slots} />
+          </div>
 
           <button
             onClick={() => finish()}
@@ -198,43 +232,35 @@ export function TenablePlay({
       )}
 
       {phase === "finished" && (
-        <div className="surface mt-10 flex flex-col items-center gap-4 rounded-xl3 p-10 text-center">
-          <p className="font-display text-4xl font-semibold">
-            {found.length} / {totalAnswers}
-          </p>
-          <p className="text-muted-light dark:text-muted-dark">
-            {saveStatus === "saving" && "Saving your result…"}
-            {saveStatus === "saved" && "Result saved to your account."}
-            {saveStatus === "not-logged-in" && (
-              <>
-                <Link href="/login" className="underline">
-                  Log in
-                </Link>{" "}
-                to save your results.
-              </>
-            )}
-          </p>
+        <div className="mt-10">
+          <div className="surface flex flex-col items-center gap-2 rounded-xl3 p-8 text-center">
+            <p className="font-display text-4xl font-semibold">
+              {foundCount} / {totalAnswers}
+            </p>
+            <p className="text-muted-light dark:text-muted-dark">
+              {saveStatus === "saving" && "Saving your result…"}
+              {saveStatus === "saved" && "Result saved to your account."}
+              {saveStatus === "not-logged-in" && (
+                <>
+                  <Link href="/login" className="underline">
+                    Log in
+                  </Link>{" "}
+                  to save your results.
+                </>
+              )}
+            </p>
+            <div className="mt-2 flex gap-3">
+              <button onClick={start} className="btn-primary">
+                Play again
+              </button>
+              <Link href="/games/tenable" className="btn-secondary">
+                Other categories
+              </Link>
+            </div>
+          </div>
 
-          {found.length > 0 && (
-            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {found.map((f) => (
-                <li
-                  key={f.id}
-                  className="rounded-xl bg-paper dark:bg-ink px-3 py-2 text-sm"
-                >
-                  {f.answer}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-4 flex gap-3">
-            <button onClick={start} className="btn-primary">
-              Play again
-            </button>
-            <Link href="/games/tenable" className="btn-secondary">
-              Other categories
-            </Link>
+          <div className="mt-6">
+            <AnswerBoard slots={slots} />
           </div>
         </div>
       )}

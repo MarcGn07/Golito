@@ -55,3 +55,21 @@ export function isFuzzyMatch(guess: string, target: string): boolean {
   if (g === t) return true;
   return levenshtein(g, t) <= maxAllowedDistance(t.length);
 }
+
+/**
+ * Builds every acceptable "just the surname" way to answer a full name,
+ * so players don't have to type the whole thing. For "Kevin De Bruyne"
+ * this returns ["Kevin De Bruyne", "De Bruyne", "Bruyne"] — i.e. the
+ * full name plus every trailing word-group, so both "De Bruyne" and
+ * "Bruyne" are accepted, not just the very last word.
+ */
+export function surnameCandidates(fullName: string): string[] {
+  const words = fullName.trim().split(/\s+/);
+  if (words.length <= 1) return [fullName];
+
+  const candidates: string[] = [fullName];
+  for (let i = words.length - 1; i > 0; i--) {
+    candidates.push(words.slice(i).join(" "));
+  }
+  return candidates;
+}

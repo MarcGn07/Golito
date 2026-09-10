@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { createClient } from "@/lib/supabase/server";
-import { createTenableCategory, togglePublish } from "./actions";
+import { createTenableCategory } from "./actions";
+import { CategoryForm } from "./category-form";
 import { PublishToggleWrapper } from "./publish-toggle-wrapper";
+import { DeleteButtonWrapper } from "./delete-button-wrapper";
 
 export default async function TenableAdminPage() {
   const supabase = createClient();
@@ -20,56 +22,19 @@ export default async function TenableAdminPage() {
         </Link>
         <h1 className="mt-4 font-display text-3xl font-semibold">Football Tenable</h1>
         <p className="mt-2 text-muted-light dark:text-muted-dark">
-          Each category needs a title and up to 10 correct answers.
+          Each category needs a title and up to 10 correct answers, in rank order.
         </p>
 
-        <form action={createTenableCategory} className="surface mt-8 flex flex-col gap-4 rounded-xl3 p-6">
-          <div>
-            <label htmlFor="title" className="mb-1.5 block text-sm font-medium">
-              Category title
-            </label>
-            <input
-              id="title"
-              name="title"
-              required
-              placeholder="e.g. Teammates of Thomas Müller"
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="mb-1.5 block text-sm font-medium">
-              Description (optional)
-            </label>
-            <input
-              id="description"
-              name="description"
-              placeholder="Extra context shown to players"
-              className="input-field"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {Array.from({ length: 10 }, (_, i) => (
-              <input
-                key={i}
-                name={`answer_${i + 1}`}
-                placeholder={`Correct answer ${i + 1}`}
-                className="input-field"
-              />
-            ))}
-          </div>
-
-          <button type="submit" className="btn-primary mt-2 self-start">
-            Save category
-          </button>
-        </form>
+        <div className="mt-8">
+          <CategoryForm action={createTenableCategory} />
+        </div>
 
         <h2 className="mt-12 font-display text-xl font-semibold">Existing categories</h2>
         <ul className="mt-4 flex flex-col gap-3">
           {categories?.map((category) => (
             <li
               key={category.id}
-              className="surface flex items-center justify-between rounded-2xl px-5 py-4"
+              className="surface flex items-center justify-between gap-4 rounded-2xl px-5 py-4"
             >
               <div>
                 <p className="font-medium">{category.title}</p>
@@ -77,10 +42,19 @@ export default async function TenableAdminPage() {
                   {category.tenable_answers?.length ?? 0} answers
                 </p>
               </div>
-              <PublishToggleWrapper
-                categoryId={category.id}
-                isPublished={category.is_published}
-              />
+              <div className="flex shrink-0 items-center gap-2">
+                <Link
+                  href={`/admin/tenable/${category.id}/edit`}
+                  className="rounded-full px-4 py-1.5 text-sm font-medium text-ink dark:text-paper hover:bg-paper-2 dark:hover:bg-ink-2"
+                >
+                  Edit
+                </Link>
+                <PublishToggleWrapper
+                  categoryId={category.id}
+                  isPublished={category.is_published}
+                />
+                <DeleteButtonWrapper categoryId={category.id} />
+              </div>
             </li>
           ))}
           {categories?.length === 0 && (
