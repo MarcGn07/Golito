@@ -25,7 +25,7 @@ export const COUNTRY_ALIASES: Record<string, string> = {
   "antigua & barbuda": "Antigua and Barbuda",
   "st. vincent & grenadines": "St Vincent and the Grenadines",
   macedonia: "North Macedonia",
-  fyr macedonia: "North Macedonia",
+  "fyr macedonia": "North Macedonia",
   swaziland: "Eswatini",
   burma: "Myanmar",
   "korea, south": "South Korea",
